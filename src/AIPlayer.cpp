@@ -20,9 +20,8 @@ bool AIPlayer::move(){
     actual->movePiece(c_piece, id_piece, dice);
     return true;
 }
-
-void AIPlayer::think(color & c_piece, int & id_piece, int & dice) const{
-    // IMPLEMENTACIÓN INICIAL DEL AGENTE
+void AIPlayer::thinkAleatorio(color & c_piece, int & id_piece, int & dice) const{
+   // IMPLEMENTACIÓN INICIAL DEL AGENTE
     // Esta implementación realiza un movimiento aleatorio.
     // Se proporciona como ejemplo, pero se debe cambiar por una que realice un movimiento inteligente
     //como lo que se muestran al final de la función.
@@ -62,7 +61,152 @@ void AIPlayer::think(color & c_piece, int & id_piece, int & dice) const{
         id_piece = SKIP_TURN;
         c_piece = actual->getCurrentColor(); // Le tengo que indicar mi color actual al pasar turno.
     }
+}
 
+void AIPlayer::thinkAleatorioMasInteligente(color &c_piece, int &id_piece, int &dice) const{
+    //el numero de mi jugador actual.
+    int player = actual -> getCurrentPlayerId();
+    
+    //Vector que almacena los dados que se pueden usar para el movimiento.
+    vector<int> current_dices;
+
+    //Vector que almacenará los ids de las fichas que se pueden mover para el dado elegido.
+    vector<tuple<color,int>> current_pieces;
+
+    /*Obtengo el vector de dados que puedo usar para el movimiento
+    * actual-> getvaiableNormalDices(player) --> solo dados disponibles en ese turno.
+    * Importante: "getAvailableNormalDices" me da los dados que puedo usar en el turno actual.
+    * Por ejemplo, si me tengo que contar 10 o 20 solo me saldrán los dados 10 y 20.
+    * Puedo saber que más dados tengo, aunque no los pueda usar en este turno, con:
+    * actual -> getNoramlDices(player) --> todos los dados
+    */
+
+    current_dices = actual->getAvailableNormalDices(player);
+
+    //En vez de elegir un dado al azar, miro primero cuáles  tienen fichas que se puedan mover.
+    vector<int> current_dices_que_pueden_mover_ficha;
+    for(int i = 0; i < current_dices.size();i++){
+        //Se obtiene el vector de fichas que se pueden mover para el dado elegido.
+        current_pieces = actual->getAvailablePieces(player,current_dices[i]);
+        
+        //Si se pueden mover fichcas para el dado actual, lo añado al vector de dados que pueden mover fichas
+        if(current_pieces.size() > 0){
+            current_dices_que_pueden_mover_ficha.push_back(current_dices[i]);
+        }
+    }
+    //Si no tengo ningún dado que pueda mover fichas, paso turno con un dado al azar(la macro SKIP_TURN me permite no mover)
+    if(current_dices_que_pueden_mover_ficha.size() == 0){
+        dice = current_dices[rand() % current_dices.size()];
+
+        id_piece = SKIP_TURN;
+        c_piece = actual->getCurrentColor(); //LE tengo que indicar mi color actual al pasar turno
+    }
+
+    //en caso contrario, elijo un dado de forma aleatoria entre los que pueden mover ficha
+    else{
+        dice = current_dices_que_pueden_mover_ficha[rand() % current_dices_que_pueden_mover_ficha.size()];
+
+        //Se obtiene el vector de fichas que se pueden mover para el dado elegido
+        current_pieces = actual->getAvailablePieces(player,dice);
+
+        //Muevo la ficha al azar de entre las que se pueden mover
+        int random_id = rand() % current_pieces.size();
+        id_piece = get<1>(current_pieces[random_id]);
+        c_piece = get<0>(current_pieces[random_id]);
+    }
+}
+
+void AIPlayer::thinkFichaMasAdelantada(color & c_piece, int & id_piece, int & dice) const{
+    //Elijo el dado haciendo lo mismo que el jugador anterior
+    thinkAleatorioMasInteligente(c_piece,id_piece,dice);
+    /**
+     * Tras llamar a esta función, ya tengo en dice el número de dado que quiero usar
+     * Ahora, en vez de mover una ficha al azar, voy a mover (o a aplicar el dado especial a)
+     * la que esté más adelante (equivalentemente, la más cercana a la meta)
+    */
+   int player = actual->getCurrentPlayerId();
+   vector<tuple<color,int>> current_pieces = actual->getAvailablePieces(player,dice);
+   int id_ficha_mas_adelantada = -1;
+   color col_ficha_mas_adelantada = none;
+   int min_distancia_meta = 9999;
+   for(int i = 0;i < current_pieces.size(); i++){
+       //distanceToGoal(color,id) devuelve la distancia a la meta de la ficha [id] del
+        color col = get<0>(current_pieces[i]);
+        int id = get<1>(current_pieces[i]);
+        int distancia_meta = actual->distanceToGoal(col,id);
+        if(distancia_meta < min_distancia_meta){
+            min_distancia_meta = distancia_meta;
+            id_ficha_mas_adelantada = id;
+            col_ficha_mas_adelantada = col;
+        }
+   }
+
+   //SI no he encontrado ninguna ficha, paso turno.
+   if(id_ficha_mas_adelantada == -1){
+       id_piece = SKIP_TURN;
+       c_piece = actual->getCurrentColor(); //LE tengo que indicar mi color actual al pasar turno.
+   }
+   
+   //En caso contrario, moveré la ficha más adelantada
+   else{
+       id_piece = id_ficha_mas_adelantada;
+       c_piece = col_ficha_mas_adelantada;
+   }
+}
+
+void AIPlayer::thinkMejorOpcion(color &c_piece, int &id_piece, int &dice)const{
+    /**
+     * Vamos a mirar todos los posibles movimientos del jugador actual accediendo a los hijos del estado actual
+     * Cuando ya he recorrido todos los hijos, la función devuelve el es tado actual. De esta forma puedo saber cuándo paro de iterar.
+     * 
+     * Para ello, vamos a iterar sobre los hijos con la función de Parchis getChildren()
+     * Esta función devuelve un objeto de la clase ParchisBros, que es una estructura iterable sobre la que se pueden recorrer todos los hijos del estado sobre el que se llama
+    */
+   ParchisBros hijos = actual->getChildren();
+   bool me_quedo_con_esta_accion = false;
+
+   /**
+    * La clase ParchisBRos viene con un iterador muy util y sencillo de usar
+    * Al hacer begin() accedemos al primer hijo de la rama, y cada vez que hagamos ++it saltaremos al siguiente hijo.
+    * Comparando con el iterador end() podemos consultar cuando hemos terminado de visitar los hijos.
+    * 
+    * Voy a moverme a la casilla siempre con la que gane más energía, salvo que me encuentre con algún movimiento interesante, como comer fichas o llegar a la meta
+   */
+  int current_power = actual->getPowerBar(this->jugador).getPower();
+  int max_power = -101; //máxima ganancia de energía
+
+  for(ParchisBros::Iterator it = hijos.begin(); it != hijos.end() && !me_quedo_con_esta_accion; ++it){
+      Parchis siguiente_hijo = *it;
+      /**
+       * Si en el movimiento elegido comiera ficha, llegara a la meta o ganara, me quedo con esa accion
+       * Termino el bucle en otro caso
+      */
+     if(siguiente_hijo.isEatingMove() or 
+        siguiente_hijo.isGoalMove() or
+        (siguiente_hijo.gameOver() and siguiente_hijo.getWinner() == this->jugador)){
+            me_quedo_con_esta_accion = true;
+            c_piece = it.getMovedColor();
+            id_piece = it.getMovedPieceId();
+            dice = it.getMovedDiceValue();
+     }
+
+     //En caso contrario, me voy quedando con el que más energía me da
+     else{
+         int new_power = siguiente_hijo.getPower(this->jugador);
+         if(new_power - current_power > max_power){
+             c_piece = it.getMovedColor();
+             id_piece = it.getMovedPieceId();
+             dice = it.getMovedDiceValue();
+             max_power = new_power - current_power;
+         }
+     }
+     /**
+      * SI he encontrado una acción que me interesa, la guardo en las variables pasadas por referencia
+      * (Ya lo he hechjo antes, cuando les he asignado valor con el iterador)
+     */
+  }
+}
+void AIPlayer::think(color & c_piece, int & id_piece, int & dice) const{
     /*
     // El siguiente código se proporciona como sugerencia para iniciar la implementación del agente.
 
@@ -73,22 +217,22 @@ void AIPlayer::think(color & c_piece, int & id_piece, int & dice) const{
     cout << "Valor MiniMax: " << valor << "  Accion: " << str(c_piece) << " " << id_piece << " " << dice << endl;
 
     // ----------------------------------------------------------------- //
-
+*/
     // Si quiero poder manejar varias heurísticas, puedo usar la variable id del agente para usar una u otra.
     switch(id){
         case 0:
-            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
+            thinkAleatorio(c_piece,id_piece,dice);
             break;
         case 1:
-            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, MiValoracion1);
+           thinkAleatorioMasInteligente(c_piece,id_piece,dice);
             break;
         case 2:
-            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, MiValoracion2);
+            thinkFichaMasAdelantada(c_piece,id_piece,dice);
+            break;
+        case 3:
+            thinkMejorOpcion(c_piece,id_piece,dice);
             break;
     }
-    cout << "Valor MiniMax: " << valor << "  Accion: " << str(c_piece) << " " << id_piece << " " << dice << endl;
-
-    */
 }
 
 
