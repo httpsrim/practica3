@@ -1,3 +1,5 @@
+//cmake -DCMAKE_BUILD_TYPE=Release
+
 # include "AIPlayer.h"
 # include "Parchis.h"
 
@@ -267,8 +269,7 @@ double AIPlayer::primeraHeuristica(const Parchis &estado, int jugador){
         int puntuacionOponente = 0;
         
         int mejorJugador = 0, mejorOponente = 0;
-        color cDef, cObj;
-        int multAgr, multDef, multObj;
+  
         vector<int> estadoJugador(2,0), estadoOponente(2,0);   //inicialización de 2 elementos, ambos a 0.
         for(int i = 0; i < my_colors.size(); i++){
             color c = my_colors[i];
@@ -281,7 +282,6 @@ double AIPlayer::primeraHeuristica(const Parchis &estado, int jugador){
             }
             if(estadoJugador[i] >= mejorJugador){
                 mejorJugador = estadoJugador[i];
-                cDef = c;
             }
         }
         for(int i = 0; i < op_colors.size(); i++){
@@ -295,28 +295,26 @@ double AIPlayer::primeraHeuristica(const Parchis &estado, int jugador){
             }
             if(estadoOponente[i] > mejorOponente){
                 mejorOponente = estadoOponente[i];
-                cObj = c;
             }
         }
 
         puntuacionJugador += estado.getAvailableNormalDices(jugador).size() * 6;
         for(int i = 0; i < my_colors.size() ; i++){
             color c = my_colors[i];
-            if(c == cDef)multDef = 2;
-            else multDef = 1;
+
             
             for(int j = 0; j < num_pieces;j++){
                 const Piece pieza = estado.getBoard().getPiece(c,j);
                 const Box casilla = pieza.get_box();
 
-                if(casilla.type == home) puntuacionOponente += 60 * multDef;
+                if(casilla.type == home) puntuacionOponente += 60;
                 else{
-                    if(estado.isSafePiece(c,j)) puntuacionJugador += 5 * multDef;
-                    else if(casilla.type == final_queue) puntuacionJugador += 10 * multDef;
-                    else if(casilla.type == goal) puntuacionJugador += 15 * multDef;
+                    if(estado.isSafePiece(c,j)) puntuacionJugador += 5;
+                    else if(casilla.type == final_queue) puntuacionJugador += 10;
+                    else if(casilla.type == goal) puntuacionJugador += 15;
 
                     int distanciaMeta = estado.distanceToGoal(c,j);
-                    puntuacionJugador += (74 - distanciaMeta) * multDef;
+                    puntuacionJugador += (74 - distanciaMeta);
                 }
             }
         }
@@ -324,19 +322,17 @@ double AIPlayer::primeraHeuristica(const Parchis &estado, int jugador){
         puntuacionOponente += estado.getAvailableNormalDices(oponente).size() * 6;
         for(int i = 0; i < op_colors.size() ; i++){
             color c = op_colors[i];
-            if(c == cObj) multObj = 2;
-            else multObj = 1;
             for(int j = 0; j < num_pieces;j++){
                 const Piece pieza = estado.getBoard().getPiece(c,j);
                 const Box casilla = pieza.get_box();
-                if(casilla.type == home) puntuacionJugador += 60 * multObj;
+                if(casilla.type == home) puntuacionJugador += 60;
                 else{
-                    if(estado.isSafePiece(c,j)) puntuacionOponente += 5* multObj;
-                    else if(casilla.type == final_queue) puntuacionOponente += 5* multObj;
-                    else if(casilla.type == goal) puntuacionOponente += 15* multObj;
+                    if(estado.isSafePiece(c,j)) puntuacionOponente += 5;
+                    else if(casilla.type == final_queue) puntuacionOponente += 5;
+                    else if(casilla.type == goal) puntuacionOponente += 15;
 
                     int distanciaMeta = estado.distanceToGoal(c,j);
-                    puntuacionOponente += (74 - distanciaMeta)* multObj;
+                    puntuacionOponente += (74 - distanciaMeta);
                 }
             }
         }
