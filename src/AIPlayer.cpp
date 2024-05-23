@@ -258,7 +258,9 @@ yo J1 = 0K
 yo J2 = OK
 NINJA 2:
 yo J1 = OK
-yo J2 =
+yo J2 = NOT OK
+vale, primero de todo, copiar esta heuristica, quitar tema de mejor jugador/oponente.
+DE ahí, el que coma la ficha q valga más en jugador, al igualq  si está en la casa el contrincante. Igualemtne aumentar valor de que llegue a goal.
 */
 double AIPlayer::primeraHeuristica(const Parchis &estado, int jugador){
     int ganador = estado.getWinner();
