@@ -252,7 +252,14 @@ double AIPlayer::Poda_AlfaBeta(const Parchis &actual, int jugador, int profundid
         return beta;
     }
 }
-
+/*
+NINJA 1: 
+yo J1 = 0K
+yo J2 = OK
+NINJA 2:
+yo J1 = OK
+yo J2 =
+*/
 double AIPlayer::primeraHeuristica(const Parchis &estado, int jugador){
     int ganador = estado.getWinner();
     int oponente = (jugador + 1) % 2;
