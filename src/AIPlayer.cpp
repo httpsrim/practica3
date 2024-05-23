@@ -269,14 +269,13 @@ double AIPlayer::primeraHeuristica(const Parchis &estado, int jugador){
         int puntuacionOponente = 0;
         
         int mejorJugador = 0, mejorOponente = 0;
-  
+
         vector<int> estadoJugador(2,0), estadoOponente(2,0);   //inicialización de 2 elementos, ambos a 0.
         for(int i = 0; i < my_colors.size(); i++){
             color c = my_colors[i];
             for(int j = 0; j < num_pieces;j++){
                 Piece pieza = estado.getBoard().getPiece(c,j);
                 Box casilla = pieza.get_box();
-                
                 int distanciaMeta = estado.distanceToGoal(c,j);
                 estadoJugador[i] += (74-distanciaMeta);
             }
@@ -301,7 +300,8 @@ double AIPlayer::primeraHeuristica(const Parchis &estado, int jugador){
         puntuacionJugador += estado.getAvailableNormalDices(jugador).size() * 6;
         for(int i = 0; i < my_colors.size() ; i++){
             color c = my_colors[i];
-
+            //MIRAR TEMAS DE COMER OPONENTE       
+            //MIRAR PODERES
             
             for(int j = 0; j < num_pieces;j++){
                 const Piece pieza = estado.getBoard().getPiece(c,j);
@@ -309,10 +309,11 @@ double AIPlayer::primeraHeuristica(const Parchis &estado, int jugador){
 
                 if(casilla.type == home) puntuacionOponente += 60;
                 else{
-                    if(estado.isSafePiece(c,j)) puntuacionJugador += 5;
-                    else if(casilla.type == final_queue) puntuacionJugador += 10;
-                    else if(casilla.type == goal) puntuacionJugador += 15;
-
+                    if(estado.isSafePiece(c,j)) puntuacionJugador += 50;
+                    else if(casilla.type == final_queue) puntuacionJugador += 50;
+                    else if(casilla.type == goal) puntuacionJugador += 150;
+                    else if(estado.isEatingMove()) puntuacionJugador += 50;
+                    else if(estado.eatenPiece().first == c) puntuacionJugador -= 100;
                     int distanciaMeta = estado.distanceToGoal(c,j);
                     puntuacionJugador += (74 - distanciaMeta);
                 }
@@ -327,10 +328,11 @@ double AIPlayer::primeraHeuristica(const Parchis &estado, int jugador){
                 const Box casilla = pieza.get_box();
                 if(casilla.type == home) puntuacionJugador += 60;
                 else{
-                    if(estado.isSafePiece(c,j)) puntuacionOponente += 5;
-                    else if(casilla.type == final_queue) puntuacionOponente += 5;
-                    else if(casilla.type == goal) puntuacionOponente += 15;
-
+                    if(estado.isSafePiece(c,j)) puntuacionOponente += 50;
+                    else if(casilla.type == final_queue) puntuacionOponente += 50;
+                    else if(casilla.type == goal) puntuacionOponente += 150;
+                    else if(estado.isEatingMove()) puntuacionOponente += 500;
+                    else if(estado.eatenPiece().first == c) puntuacionOponente -= 100;
                     int distanciaMeta = estado.distanceToGoal(c,j);
                     puntuacionOponente += (74 - distanciaMeta);
                 }
@@ -355,7 +357,7 @@ void AIPlayer::think(color & c_piece, int & id_piece, int & dice) const{
 
             break;
         case 1:
-            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, primeraHeuristica);
+            valor = Poda_AlfaBeta(*actual, jugador, 0, 6, c_piece, id_piece, dice, alpha, beta, primeraHeuristica);
     cout << "Valor MiniMax: " << valor << "  Accion: " << str(c_piece) << " " << id_piece << " " << dice << endl;
 
             break;
