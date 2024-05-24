@@ -254,13 +254,15 @@ double AIPlayer::Poda_AlfaBeta(const Parchis &actual, int jugador, int profundid
 }
 /*
 NINJA 1: 
-yo J1 = 0K
+yo J1 = OK
 yo J2 = OK
 NINJA 2:
 yo J1 = OK
 yo J2 = NOT OK
+NINJA 3:
+yo J1 = OK
 vale, primero de todo, copiar esta heuristica, quitar tema de mejor jugador/oponente.
-DE ahí, el que coma la ficha q valga más en jugador, al igualq  si está en la casa el contrincante. Igualemtne aumentar valor de que llegue a goal.
+DE ahí, el que coma la ficha q valga más en jugador, al igualq  si está en la casa el contrincante. Igualemtne aumentar valor de que llegue a goal. POner menos valor a que esté en casilla segura, y más valor a que se mueva
 */
 double AIPlayer::primeraHeuristica(const Parchis &estado, int jugador){
     int ganador = estado.getWinner();
