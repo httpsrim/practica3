@@ -1,4 +1,5 @@
 //cmake -DCMAKE_BUILD_TYPE=Release
+//./build/ParchisGame --p1 GUI 0 “Yo” --p2 AI 0 “Random”
 
 # include "AIPlayer.h"
 # include "Parchis.h"
@@ -261,6 +262,7 @@ yo J1 = OK
 yo J2 = NOT OK
 NINJA 3:
 yo J1 = OK
+yo J22 0 NOT OK
 vale, primero de todo, copiar esta heuristica, quitar tema de mejor jugador/oponente.
 MUSHROOM debería ponerlo??
 hacer funcion de que si me pueden comer o yo puedo comer...
@@ -354,6 +356,118 @@ double AIPlayer::primeraHeuristica(const Parchis &estado, int jugador){
         return puntuacionJugador - puntuacionOponente;
     }
 }
+/*
+NINJA 1: 
+yo J1 = 
+yo J2 = 
+NINJA 2:
+yo J1 = 
+yo J2 = 
+NINJA 3:
+yo J1 =             
+yo J2 =
+hacer funcion de que si me pueden comer o yo puedo comer...
+DE ahí, el que coma la ficha q valga más en jugador, al igualq  si está en la casa el contrincante. Igualemtne aumentar valor de que llegue a goal. POner menos valor a que esté en casilla segura, y más valor a que se mueva
+*/
+double AIPlayer::segundaHeuristica(const Parchis &estado, int jugador){
+    int ganador = estado.getWinner();
+    int oponente = (jugador + 1) % 2;
+    if(ganador == jugador){
+        return gana;
+    }
+    else if(ganador == oponente){
+        return pierde;
+    }
+    else{
+        vector<color> my_colors = estado.getPlayerColors(jugador);
+        vector<color> op_colors = estado.getPlayerColors(oponente);
+        int puntuacionJugador = 0;
+        int puntuacionOponente = 0;
+        
+        int mejorJugador = 0, mejorOponente = 0;
+
+        vector<int> estadoJugador(2,0), estadoOponente(2,0);   //inicialización de 2 elementos, ambos a 0.
+        for(int i = 0; i < my_colors.size(); i++){
+            color c = my_colors[i];
+
+            for(int j = 0; j < num_pieces;j++){
+                Piece pieza = estado.getBoard().getPiece(c,j);
+                Box casilla = pieza.get_box();
+                int distanciaMeta = estado.distanceToGoal(c,j);
+                estadoJugador[i] += (74-distanciaMeta);
+            }
+            if(estadoJugador[i] >= mejorJugador){
+                mejorJugador = estadoJugador[i];
+            }
+        }
+        for(int i = 0; i < op_colors.size(); i++){
+            color c = op_colors[i];
+            for(int j = 0 ; j < num_pieces ; j++){
+                Piece pieza = estado.getBoard().getPiece(c,j);
+                Box casilla = pieza.get_box();
+
+                int distanciaMeta = estado.distanceToGoal(c,j);
+                estadoOponente[i] += (74 - distanciaMeta);
+            }
+            if(estadoOponente[i] > mejorOponente){
+                mejorOponente = estadoOponente[i];
+            }
+        }
+
+        //mirar distancia box to box y los dados que le quedan al adverrsario y si llega a mi ficha
+        int modificador = 0;
+        puntuacionJugador += estado.getAvailableNormalDices(jugador).size() * 6;
+        for(int i = 0; i < my_colors.size() ; i++){
+            color c = my_colors[i];            
+            for(int j = 0; j < num_pieces;j++){
+                const Piece pieza = estado.getBoard().getPiece(c,j);
+                const Box casilla = pieza.get_box();
+                if(i == mejorJugador){
+                    modificador = 2;
+                }else{
+                    modificador = 1;
+                }
+                if(casilla.type == home) puntuacionOponente += 60;
+                else{
+                    if(estado.isSafePiece(c,j)) puntuacionJugador += 50 * modificador;
+                    else if(casilla.type == final_queue) puntuacionJugador += 50 * modificador;
+                    else if(casilla.type == goal) puntuacionJugador += 150 * modificador;
+                    else if (estado.getBoard().getPiece(c, j).get_box().type == goal) puntuacionOponente += 200 * modificador;
+                    else if(estado.isEatingMove()) puntuacionJugador += 50 * modificador;
+                    else if(estado.eatenPiece().first == c) puntuacionJugador -= 100;
+                    int distanciaMeta = estado.distanceToGoal(c,j);
+                    puntuacionJugador += (74 - distanciaMeta) * modificador;
+                }
+            }
+        }
+
+        puntuacionOponente += estado.getAvailableNormalDices(oponente).size() * 6;
+        for(int i = 0; i < op_colors.size() ; i++){
+            color c = op_colors[i];
+            for(int j = 0; j < num_pieces;j++){
+                const Piece pieza = estado.getBoard().getPiece(c,j);
+                const Box casilla = pieza.get_box();
+                if(i == mejorOponente){
+                    modificador = 2;
+                }else{
+                    modificador = 1;
+                }
+                if(casilla.type == home) puntuacionJugador += 60;
+                else{
+                    if(estado.isSafePiece(c,j)) puntuacionOponente += 50 * modificador;
+                    else if(casilla.type == final_queue) puntuacionOponente += 50 * modificador;
+                    else if(casilla.type == goal) puntuacionOponente += 150 * modificador;
+                    else if (estado.getBoard().getPiece(c, j).get_box().type == goal) puntuacionOponente += 250 * modificador;
+                    else if(estado.isEatingMove()) puntuacionOponente += 500 * modificador;
+                    else if(estado.eatenPiece().first == c) puntuacionOponente -= 100;
+                    int distanciaMeta = estado.distanceToGoal(c,j);
+                    puntuacionOponente += (74 - distanciaMeta) * modificador;
+                }
+            }
+        }
+        return puntuacionJugador - puntuacionOponente;
+    }
+}
 
 void AIPlayer::think(color & c_piece, int & id_piece, int & dice) const{
     double valor; // Almacena el valor con el que se etiqueta el estado tras el proceso de busqueda.
@@ -375,7 +489,7 @@ void AIPlayer::think(color & c_piece, int & id_piece, int & dice) const{
 
             break;
         case 2:
-            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
+            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, segundaHeuristica);
     cout << "Valor MiniMax: " << valor << "  Accion: " << str(c_piece) << " " << id_piece << " " << dice << endl;
 
             break;
