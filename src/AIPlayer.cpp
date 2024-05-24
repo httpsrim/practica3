@@ -262,6 +262,8 @@ yo J2 = NOT OK
 NINJA 3:
 yo J1 = OK
 vale, primero de todo, copiar esta heuristica, quitar tema de mejor jugador/oponente.
+MUSHROOM debería ponerlo??
+hacer funcion de que si me pueden comer o yo puedo comer...
 DE ahí, el que coma la ficha q valga más en jugador, al igualq  si está en la casa el contrincante. Igualemtne aumentar valor de que llegue a goal. POner menos valor a que esté en casilla segura, y más valor a que se mueva
 */
 double AIPlayer::primeraHeuristica(const Parchis &estado, int jugador){
